@@ -15,6 +15,26 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
 
   useEffect(() => {
+    // Suppress React 19 deprecation console error coming from some libraries
+    // that access `element.ref`. This is a temporary runtime filter to
+    // avoid noisy errors during development. Long-term fix: align Next/React
+    // versions and upgrade MUI to a React-19-compatible release.
+    const origConsoleError = console.error;
+    console.error = (...args: any[]) => {
+      try {
+        const first = args[0];
+        if (typeof first === "string" && first.includes("Accessing element.ref was removed in React 19")) {
+          return;
+        }
+      } catch (e) {
+        // ignore
+      }
+      origConsoleError.apply(console, args);
+    };
+    return () => {
+      console.error = origConsoleError;
+    };
+
     if (isDarkMode) {
       document.documentElement.classList.add("dark");
     } else {
