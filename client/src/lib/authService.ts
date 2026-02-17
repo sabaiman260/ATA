@@ -30,10 +30,26 @@ export async function resetPassword(email: string) {
 }
 
 export async function getSession() {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  return session;
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    return session;
+  } catch (err) {
+    // If the refresh token is missing/invalid, supabase throws an AuthApiError
+    // with code 'refresh_token_not_found'. In that case, clear any stored
+    // session data and return null so the app can redirect to login.
+    const e: any = err;
+    if (e?.name === "AuthApiError" && e?.code === "refresh_token_not_found") {
+      try {
+        await supabase.auth.signOut();
+      } catch (_) {
+        // ignore signOut errors
+      }
+      return null;
+    }
+    throw err;
+  }
 }
 
 export async function getUser() {
