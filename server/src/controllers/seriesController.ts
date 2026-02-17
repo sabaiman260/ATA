@@ -1,0 +1,142 @@
+import { Request, Response } from "express";
+import { prisma } from "../lib/prisma";
+
+export const getSeries = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
+    try {
+        const search = req.query.search?.toString();
+        const categoryId = req.query.categoryId?.toString();
+
+        const series = await prisma.series.findMany({
+            where: {
+                ...(search && {
+                    name: {
+                        contains: search,
+                    },
+                }),
+                ...(categoryId && { categoryId }),
+            },
+            include: {
+                category: true,
+                products: true,
+            },
+        });
+        res.json(series);
+    } catch (error) {
+        console.error("Error retrieving series:", error);
+        res.status(500).json({ message: "Error retrieving series" });
+    }
+};
+
+export const getSeriesById = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const series = await prisma.series.findUnique({
+            where: { id },
+            include: { category: true, products: true },
+        });
+
+        if (!series) {
+            res.status(404).json({ message: "Series not found" });
+            return;
+        }
+
+        res.json(series);
+    } catch (error) {
+        console.error("Error retrieving series:", error);
+        res.status(500).json({ message: "Error retrieving series" });
+    }
+};
+
+export const createSeries = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
+    try {
+        const { name, description, categoryId } = req.body;
+
+        console.log("Creating series with:", { name, description, categoryId });
+
+        // Check if category exists
+        const category = await prisma.category.findUnique({ where: { id: categoryId } });
+
+        if (!category) {
+            console.error(`Category not found with id: ${categoryId}`);
+            res.status(400).json({ message: `Category not found with id: ${categoryId}` });
+            return;
+        }
+
+        const series = await prisma.series.create({ 
+            data: { name, description, categoryId }, 
+            include: { category: true } 
+        });
+        res.status(201).json(series);
+    } catch (error) {
+        console.error("Error creating series:", error);
+        res.status(500).json({ message: "Error creating series", error: (error as Error).message });
+    }
+};
+
+export const updateSeries = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { name, description, categoryId } = req.body;
+
+        // If categoryId is being updated, check if new category exists
+        if (categoryId) {
+            const category = await prisma.category.findUnique({ where: { id: categoryId } });
+
+            if (!category) {
+                res.status(400).json({ message: "Category not found" });
+                return;
+            }
+        }
+
+        const series = await prisma.series.update({
+            where: { id },
+            data: { 
+                ...(name && { name }), 
+                ...(description !== undefined && { description }), 
+                ...(categoryId && { categoryId }) 
+            },
+            include: { category: true },
+        });
+
+        res.json(series);
+    } catch (error) {
+        console.error("Error updating series:", error);
+        res.status(500).json({ message: "Error updating series" });
+    }
+};
+
+export const deleteSeries = async (
+    req: Request,
+    res: Response
+): Promise<void> => {
+    try {
+        const { id } = req.params;
+
+        // Check if series has products
+        const productsCount = await prisma.product.count({ where: { seriesId: id } });
+
+        if (productsCount > 0) {
+            res.status(400).json({ message: "Cannot delete series with existing products. Please delete products first." });
+            return;
+        }
+
+        await prisma.series.delete({ where: { id } });
+
+        res.status(204).send();
+    } catch (error) {
+        console.error("Error deleting series:", error);
+        res.status(500).json({ message: "Error deleting series" });
+    }
+};
