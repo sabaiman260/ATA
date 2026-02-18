@@ -119,6 +119,7 @@ model Product {
   seriesId      String?
   purchasePrice Float
   sellingPrice  Float
+  imageUrl      String?
 
   brand  Brand?   @relation(fields: [brandId], references: [id])
   series Series?  @relation(fields: [seriesId], references: [id])

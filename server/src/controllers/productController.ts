@@ -51,10 +51,10 @@ export const createProduct = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { name, brandId, seriesId, purchasePrice, sellingPrice } = req.body;
+    const { name, brandId, seriesId, purchasePrice, sellingPrice, imageUrl } = req.body;
 
     const product = await prisma.product.create({
-      data: { name, brandId, seriesId, purchasePrice: Number(purchasePrice) || 0, sellingPrice: Number(sellingPrice) || 0 },
+      data: { name, brandId, seriesId, purchasePrice: Number(purchasePrice) || 0, sellingPrice: Number(sellingPrice) || 0, imageUrl },
       include: { brand: true, series: true },
     });
     res.status(201).json(product);
@@ -71,10 +71,10 @@ export const updateProduct = async (
   try {
     const { productId } = req.params;
     const { name, brandId, seriesId, purchasePrice, sellingPrice } = req.body;
-
+    const { imageUrl } = req.body;
     const product = await prisma.product.update({
       where: { id: productId },
-      data: { name, ...(brandId && { brandId }), ...(seriesId && { seriesId }), ...(purchasePrice !== undefined && { purchasePrice: Number(purchasePrice) }), ...(sellingPrice !== undefined && { sellingPrice: Number(sellingPrice) }) },
+      data: { name, ...(brandId && { brandId }), ...(seriesId && { seriesId }), ...(purchasePrice !== undefined && { purchasePrice: Number(purchasePrice) }), ...(sellingPrice !== undefined && { sellingPrice: Number(sellingPrice) }), ...(imageUrl !== undefined && { imageUrl }) },
       include: { brand: true, series: true },
     });
 

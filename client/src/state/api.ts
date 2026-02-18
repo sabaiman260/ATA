@@ -55,6 +55,7 @@ export interface Product {
   seriesId?: string;
   purchasePrice: number;
   sellingPrice: number;
+  imageUrl?: string;
   createdAt?: string;
   updatedAt?: string;
   brand?: Brand;
@@ -67,6 +68,7 @@ export interface NewProduct {
   seriesId: string;
   purchasePrice: number;
   sellingPrice: number;
+  imageUrl?: string;
 }
 
 export interface SalesSummary {

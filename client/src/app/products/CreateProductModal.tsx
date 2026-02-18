@@ -8,6 +8,7 @@ type ProductFormData = {
   purchasePrice: number;
   sellingPrice: number;
   seriesId: string;
+  imageFile?: File | null;
 };
 
 type CreateProductModalProps = {
@@ -28,6 +29,7 @@ const CreateProductModal = ({
     purchasePrice: 0,
     sellingPrice: 0,
     seriesId: "",
+    imageFile: null,
   });
 
   const { data: series } = useGetSeriesQuery(undefined);
@@ -62,6 +64,11 @@ const CreateProductModal = ({
     });
   };
 
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setFormData({ ...formData, imageFile: file });
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -77,7 +84,23 @@ const CreateProductModal = ({
           data: formData,
         }).unwrap();
       } else {
-        onCreate(formData);
+        // If an image file is selected, upload it first
+        if (formData.imageFile) {
+          const uploadForm = new FormData();
+          uploadForm.append("image", formData.imageFile);
+          const resp = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/products/upload`, {
+            method: "POST",
+            body: uploadForm,
+          });
+          const json = await resp.json();
+          if (json?.url) {
+            onCreate({ ...formData, imageUrl: json.url } as any);
+          } else {
+            onCreate(formData);
+          }
+        } else {
+          onCreate(formData);
+        }
       }
       onClose();
     } catch (error) {
@@ -170,6 +193,33 @@ const CreateProductModal = ({
             min="0"
             required
           />
+
+          {/* IMAGE UPLOAD */}
+          <label htmlFor="image" className={labelCssStyles}>
+            Image (optional)
+          </label>
+          <input
+            type="file"
+            name="image"
+            accept="image/*"
+            onChange={handleFileChange}
+            className={inputCssStyles}
+          />
+
+          {/* Preview */}
+          {(formData.imageFile || product?.imageUrl) && (
+            <div className="mb-2">
+              <img
+                src={
+                  formData.imageFile
+                    ? URL.createObjectURL(formData.imageFile)
+                    : (product?.imageUrl as string)
+                }
+                alt="preview"
+                className="w-32 h-32 object-cover rounded"
+              />
+            </div>
+          )}
 
           {/* ACTIONS */}
           <div className="flex justify-end space-x-2 mt-4">
